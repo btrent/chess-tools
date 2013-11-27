@@ -5,10 +5,11 @@ import re
 import string
 import sys
 
-max_move = 20
+max_move = "20."
 game_tree = datrie.Trie(string.printable)
 game_text = []
 game_text_index = 0
+moves = {}
 result_regex = re.compile("[0-9]-")
 black = 1
 white = 0
@@ -66,6 +67,8 @@ def main():
 
 	fh.close()
 
+	find_best_branches()
+
 #	drop_branch('1.e4 c6 2.d4 d5 3.e5 ')
 
 	for g in game_text:
@@ -84,8 +87,14 @@ def main():
 def process_line(line):
 	i = 0
 	global result_regex
-	# TODO: strip line after max_move ?
-	m = re.split("\d+\. *", line)
+
+	split_line = [line]
+	try:
+		split_line = re.split(max_move, line)
+	except:
+		pass
+	m = re.split("\d+\. *", split_line[0])
+
 	bw = []
 	t = ""
 	t_arr = []
@@ -116,7 +125,19 @@ def process_line(line):
 			sys.exit(1)
 			return
 
-		# add white move
+		# add next move to map
+		full_next_move = next_move
+		if (color == white):
+			full_next_move = str(i+1) + "." + next_move
+		try:
+			moves[t][next_move] += 1;
+		except:
+			try:
+				moves[t][full_next_move] = 1
+			except:
+				moves[t] = {full_next_move: 1}
+
+		# add next move to trie
 		ut = unicode(t)
 
 		try:
@@ -138,6 +159,33 @@ def process_line(line):
 			t = ''.join(t_arr)
 
 		i += 1
+
+def find_best_branches():
+	popmove = ""
+
+#	j = 0
+
+	for branch in moves:
+#		print "processing branch: " + branch
+#		print moves[branch]
+#		if (len(moves[branch]) > 3):
+#			j += 1
+		popmove = ""
+
+		for cont in moves[branch]:
+			if (popmove == ''):
+				popmove = cont
+			# if this move is more popular than another branch, drop the other branch
+			elif (moves[branch][popmove]*1 < moves[branch][cont]*1):
+#				print cont + "("+str(moves[branch][cont])+")" + " is more popular than " + popmove + "("+str(moves[branch][popmove])+")"+" so dropping branch " + branch + popmove
+				drop_branch(branch + popmove)
+				popmove = cont
+			else:
+#				print cont + "("+str(moves[branch][cont])+")" + " is less popular than " + popmove + "("+str(moves[branch][popmove])+")"+" so dropping branch " + branch + cont
+				drop_branch(branch + cont)
+
+#		if (j > 0):
+#			sys.exit(0)
 
 def drop_branch(branch):
 	keys = game_tree.keys(unicode(branch))
