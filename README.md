@@ -3,7 +3,8 @@ chess-tools
 
 The purpose of this repo is to host a collection of tools related to chess. At the moment it contains:
 
-1. Popular Lines
+Popular Lines
+-----------
 Popular Lines is a script to strip all but the most popular opening lines from a collection of games stored in a PGN-formatted file.
 
 This is useful for studying opening theory. Suggested use:
