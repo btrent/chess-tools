@@ -16,3 +16,13 @@ This is useful for studying opening theory. Suggested use:
 
 You can now use this PGN file to study openings, for example by importing back into SCID and loading random games.
 
+Merge Duplicate Games
+-----------
+This script will parse a PGN file and merge duplicate games into a single record.
+Output is a PGN file named <original_filename>_clean.pgn.
+
+Sort By Year
+-----------
+This script will parse a PGN file and sort all games into new PGN files named according to the year of the game (1888.pgn, 2012.pgn, etc.).
+
+
