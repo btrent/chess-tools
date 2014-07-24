@@ -20,7 +20,6 @@ def main():
     bracket_str = re.compile(r"^\[[A-Za-z][A-Za-z0-9]+ \".*?\"\]")
     event_str = re.compile(r"^\[Event ")
     space = re.compile(r"^ +$")
-    comments = re.compile(r"{.*?}[^A-Za-z0-9]+")
     move_spaces = re.compile(r"\. ")
 
     if len(sys.argv) != 2:
@@ -42,8 +41,7 @@ def main():
             # don't process on line 1
             if passed_first_game == 1:
                 line = re.sub(move_spaces, ".", line)
-                game["moves"] = line
-                game["moves_no_comments"] = re.sub(comments, '', line)
+                game = set_moves(game, line)
                 process_game(game)
                 line = ""
                 game = {}
@@ -70,8 +68,7 @@ def main():
 
     #final one doesn't trigger by seeing a new game
     line = re.sub(move_spaces, ".", line)
-    game["moves"] = line
-    game["moves_no_comments"] = re.sub(comments, '', line)
+    game = set_moves(game, line)
     process_game(game)
     line = ""
     game = {}
@@ -80,7 +77,76 @@ def main():
 
     print_games()
 
+def set_moves(game, line):
+    comments = re.compile(r"{.*?}[^A-Za-z0-9()]+")
+
+    game["moves"] = line
+    game["moves_no_comments"] = re.sub(comments, '', line)
+    strip_variations(game)
+    strip_variables(game)
+    clean_up_numbers(game)
+
+    return game
+
+def strip_variables(game):
+    variables = re.compile(r"\$[A-Za-z0-9]+ *")
+    game["moves_no_comments"] = re.sub(variables, "", game["moves_no_comments"])
+
+def clean_up_numbers(game):
+    extra_spaces = re.compile(r" +(\d+)")
+    game["moves_no_comments"] = re.sub(extra_spaces, r" \1", game["moves_no_comments"])
+
+def strip_variations(game):
+    text = game["moves_no_comments"]
+
+    if text.find("(") == -1:
+        return
+
+    open_paren = re.compile(r"\(")
+    close_paren = re.compile(r"\)")
+    continuation = re.compile(r" +\d+\.\.\.")
+    paren_map = [0]*len(text)
+    to_strip = 0
+    old_to_strip = 0
+    removed = 0
+    start = None
+    end = None
+
+    for i in [m.start() for m in re.finditer(open_paren, text)]:
+        paren_map[i] = 1
+ 
+    for i in [m.start() for m in re.finditer(close_paren, text)]:
+        paren_map[i] = -1
+
+    for i in range(0, len(text)):
+        if to_strip == 0 and start is not None and end is not None:
+            start = start-removed
+            end = end-removed+1
+            text = text[:start]+text[end:]
+            removed = removed + end - start
+            start = None
+            end = None
+
+        old_to_strip = to_strip
+        to_strip = to_strip + paren_map[i]
+        if to_strip != 0:
+            if to_strip < 1:
+                # mismatched parenthesis = bad PGN
+                return
+            if old_to_strip == 0:
+                start = i
+        elif old_to_strip != 0:
+            end = i
+
+    # why doesn't python have global replace?
+    text = re.sub(continuation, " ", text, 99999)
+
+    game["moves_no_comments"] = text
+
 def process_game(game):
+    #print "MOVES NO COMMENTS"
+    #print game["moves_no_comments"]
+
     if STRIP_EMPTY_GAMES and check_empty_game(game):
         return
 
