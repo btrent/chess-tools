@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+$filename = $ARGV[0];
+
+my @valid=("Event","Site","Date","Round","White","Black","Result","ECO");
+
+open(A,$filename);
+
+while(<A>){
+    if ($_ =~ /^\[/){
+        foreach my $t(@valid){
+            if ($_ =~ /\[$t /){
+                print $_;
+            }
+        }
+    } else {
+        print $_;
+    }
+}
+
+close(A);
