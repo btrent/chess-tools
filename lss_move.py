@@ -17,16 +17,25 @@ login_url = "http://www.chess-server.net/user/login"
 buffer = StringIO()
 c = pycurl.Curl()
 
+white_player = ''
+black_player = ''
+
 def main():
     line_to_play = get_pgn()
     get_lss_games(line_to_play)
 
 def get_pgn():
+    global white_player
+    global black_player
+
     p = subprocess.Popen(['pbpaste'], stdout=subprocess.PIPE)
     p.wait()
     pgn_text = p.stdout.read().replace('\r','\n')
     game = pgn.PGNGame()
     game = pgn.loads(pgn_text)[0]
+
+    white_player = game.white.split(',')[0]
+    black_player = game.black.split(',')[0]
 
     moves = strip_pgn(game)
     return moves
@@ -53,6 +62,8 @@ def get_lss_games(line_to_play):
     global login_url
     global username
     global password
+    global white_player
+    global black_player
 
     # 
     # Step 1: Login
@@ -134,7 +145,7 @@ def get_lss_games(line_to_play):
                         return
                     btmp = board.fen().split(' ')
                     bfen = btmp[0] + ' ' + btmp[1]
-                    if fen_base == bfen:
+                    if ((fen_base == bfen) and (white_player == white_name) and (black_player == black_name)):
                         make_this_move = True
 
     c.close()
@@ -159,8 +170,6 @@ def check_move(gameid, line_to_play, board, white_name, black_name, move_txt, ls
     from_square = str(san)[0:2]
     to_square = str(san)[2:4]
 
-    # No idea if this is important
-    # Currently only playing one game and as White and boarddir was 1 in the POST fields
     boarddir = '1'
     moving_side = 'W'
     if '...' in move_txt:
