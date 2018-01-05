@@ -3,23 +3,31 @@
 import pgn
 import re
 import subprocess
+import string
 import sys
 from zeep import Client
 
-username='USERID_GOES_HERE'
-password='PASSWORD_GOES_HERE'
-my_player_names=["LASTNAME, FIRSTNAME"]
+username=USERNAME
+password=PASSWORD
+my_player_names=["LAST, FIRST"]
+white_name = None
+black_name = None
+
 
 def main():
     line_to_play = get_pgn()
     current_game = get_iccf_game(line_to_play)
 
 def get_pgn():
+    global white_name, black_name
+
     p = subprocess.Popen(['pbpaste'], stdout=subprocess.PIPE)
     p.wait()
     pgn_text = p.stdout.read().replace('\r','\n')
     game = pgn.PGNGame()
     game = pgn.loads(pgn_text)[0]
+    white_name = make_comparable(game.white)
+    black_name = make_comparable(game.black)
 
     moves = strip_pgn(game)
     return moves
@@ -40,15 +48,23 @@ def strip_pgn(game):
 
     return moves
 
+def make_comparable(player_name):
+    return filter(lambda x: x in set(string.printable), player_name)
+
 def get_iccf_game(line_to_play):
-    global username, password
+    global username, password, white_name, black_name
     client = Client('http://www.iccf-webchess.com/XfccBasic.asmx?wsdl')
     result = client.service.GetMyGames(username, password)
 
     print "Line to play is " + str(line_to_play)
 
     for game in result:
-        if game.myTurn is True:
+        if game.moves is None:
+            continue
+
+        if (make_comparable(game.white) == white_name and
+            make_comparable(game.black) == black_name and
+            game.myTurn is True):
             regex = re.compile(r"\d+\.", re.IGNORECASE)
             moves = regex.sub("", game.moves)
             iccf_game_moves = moves.rstrip().lstrip().split(' ')

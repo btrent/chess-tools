@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import chess
 import pgn
@@ -7,11 +8,12 @@ from StringIO import StringIO
 import subprocess 
 import sys
 import time
+import unicodedata
 import urllib
 
-memberid = ''
-username = ''
-password = ''
+memberid = MEMBERID
+username = USERNAME
+password = PASSWORD
 
 login_url = "http://www.chess-server.net/user/login"
 buffer = StringIO()
@@ -119,8 +121,8 @@ def get_lss_games(line_to_play):
                 if '<h3>Game' in line:
                     # <h3>Game 351865: Trent - Dehaybe </h3>
                     tmp = line.split(' ')
-                    white_name = tmp[2]
-                    black_name = tmp[4]
+                    white_name = make_ascii(tmp[2])
+                    black_name = make_ascii(tmp[4])
 
                 if 'id="DOWNLOADFEN" ' in line:
                     # Ugly and convoluted but I really don't need to be debugging regex issues
@@ -149,6 +151,11 @@ def get_lss_games(line_to_play):
                         make_this_move = True
 
     c.close()
+
+def make_ascii(player_name):
+    encoding = "utf-8"
+    unicode_name = player_name.decode(encoding)
+    return u"".join([c for c in unicodedata.normalize('NFKD', unicode_name) if not unicodedata.combining(c)])
 
 def format_move(move, i):
     move_num = int(i/2)
@@ -305,4 +312,3 @@ def get_lss_square_number(move):
 
 if __name__ == "__main__":
     main()
-
