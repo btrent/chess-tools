@@ -263,6 +263,9 @@ def print_games():
         if games[game]["Event"] is None:
             continue
 
+        if "White" not in games[game].keys():
+            continue
+
         if games[game]["White"] == player:
             filehandle = filehandlew
         else:
