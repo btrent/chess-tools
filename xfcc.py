@@ -15,6 +15,13 @@ black_name = None
 
 
 def main():
+    if (len(sys.argv) > 1):
+        if (sys.argv[1] == 'ls'):
+            if (len(sys.argv) > 2 and sys.argv[2] == '-a'):
+                list_games(True)
+            else:
+                list_games()
+        sys.exit(0)
     line_to_play = get_pgn()
     current_game = get_iccf_game(line_to_play)
 
@@ -51,10 +58,56 @@ def strip_pgn(game):
 def make_comparable(player_name):
     return filter(lambda x: x in set(string.printable), player_name)
 
-def get_iccf_game(line_to_play):
+def list_games(print_all=False):
+    result = get_games()
+    data = []
+
+    for game in result:
+        if (print_all is False and game.myTurn is False):
+            continue
+        moves = game.moves.split()
+        last_move = moves[-1]
+        regex = re.compile(r"\d+\.", re.IGNORECASE)
+        if (not re.match(regex, last_move)):
+            move_num = moves[-2].split('.')[0]
+            last_move = move_num + "..." + last_move
+        if (game.drawOffered is True):
+            last_move = last_move + "(=)"
+        message = ""
+        if (game.message is not None):
+            message = game.message
+        data.append([game.white.split(',')[0]+"-"+game.black.split(',')[0], last_move, message])
+
+    pretty_print(data)
+
+
+def pretty_print(data):
+    widths = [max(map(len, col)) for col in zip(*data)]
+    print '-'*sum(widths,len(widths)*2)
+    for d in data:
+        t = []
+        for val, width in zip(d, widths):
+            if width > 95:
+                val = val[0:95]
+                width = 98
+            t.append(val.ljust(width+3))
+        print "  ".join(t)
+        print '-'*sum(widths,len(widths)*2)
+
+    print ''
+
+
+def get_games():
     global username, password, white_name, black_name
     client = Client('http://www.iccf-webchess.com/XfccBasic.asmx?wsdl')
     result = client.service.GetMyGames(username, password)
+
+    return result
+
+def get_iccf_game(line_to_play):
+    global white_name, black_name
+
+    result = get_games()
 
     print "Line to play is " + str(line_to_play)
 
