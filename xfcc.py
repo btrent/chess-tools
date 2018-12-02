@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# coding=utf-8
 
 import pgn
 import re
@@ -7,9 +8,10 @@ import string
 import sys
 from zeep import Client
 
-username=USERNAME
-password=PASSWORD
-my_player_names=["LAST, FIRST"]
+reload(sys)  
+sys.setdefaultencoding('utf8')
+
+
 white_name = None
 black_name = None
 
@@ -56,6 +58,9 @@ def strip_pgn(game):
     return moves
 
 def make_comparable(player_name):
+    #Czech names
+    player_name = player_name.replace('ź', 'z').replace('ł', 'l')
+    
     return filter(lambda x: x in set(string.printable), player_name)
 
 def list_games(print_all=False):
@@ -65,18 +70,20 @@ def list_games(print_all=False):
     for game in result:
         if (print_all is False and game.myTurn is False):
             continue
-        moves = game.moves.split()
-        last_move = moves[-1]
-        regex = re.compile(r"\d+\.", re.IGNORECASE)
-        if (not re.match(regex, last_move)):
-            move_num = moves[-2].split('.')[0]
-            last_move = move_num + "..." + last_move
-        if (game.drawOffered is True):
-            last_move = last_move + "(=)"
-        message = ""
-        if (game.message is not None):
-            message = game.message
-        data.append([game.white.split(',')[0]+"-"+game.black.split(',')[0], last_move, message])
+        if game.moves is None:
+            # First move has not been played yet
+            last_move = '-'
+        else:
+            moves = game.moves.split()
+            last_move = moves[-1]
+            regex = re.compile(r"\d+\.", re.IGNORECASE)
+            if (not re.match(regex, last_move)):
+                move_num = moves[-2].split('.')[0]
+                last_move = move_num + "..." + last_move
+            if (game.drawOffered is True):
+                last_move = last_move + "(=)"
+
+        data.append([game.white.split(',')[0]+"-"+game.black.split(',')[0], last_move])
 
     pretty_print(data)
 
